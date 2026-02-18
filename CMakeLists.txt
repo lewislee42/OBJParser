@@ -13,8 +13,12 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIGURATION>")
 
 # Source files
 set(SOURCES 
-  ./srcs/main.cpp
   ./srcs/glad.c
+  ./srcs/main.cpp
+  ./srcs/Utils.cpp
+  ./srcs/Shader.cpp
+  ./srcs/ShaderProgram.cpp
+  ./srcs/MainScene.cpp
 )
 
 include(FetchContent)
