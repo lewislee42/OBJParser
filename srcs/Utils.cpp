@@ -1,11 +1,11 @@
 #include <Utils.hpp>
 
 
-std::string readFileIntoString(const std::string& filePath) {
-	std::fstream file(filePath, std::ios::in);
+std::string readFileIntoString(const std::string& filepath) {
+	std::fstream file(filepath, std::ios::in);
 
 	if (!file.is_open())
-		throw FileNotOpened();
+		throw FileNotOpened(filepath);
 
 	std::string fileContents;
 	std::string line;
@@ -19,21 +19,23 @@ std::string readFileIntoString(const std::string& filePath) {
 	return fileContents;
 }
 
-std::vector<std::string> readFileIntoVector(const std::string& filePath) {
-	std::fstream file(filePath, std::ios::in);
-
-	if (!file.is_open())
-		throw FileNotOpened();
-
+std::vector<std::string> readFileIntoVector(const std::string& filepath) {
 	std::vector<std::string> fileContents;
 	std::string line;
+	std::ifstream file;
+	file.exceptions(std::ifstream::failbit | std::ifstream::badbit);
 
-	while (getline(file, line)) {
-		fileContents.push_back(line);
-		std::cout << "line: " << line << std::endl;
+	try {
+		file.open(filepath);
+
+		while (getline(file, line)) {
+			fileContents.push_back(line);
+		}
+
+		file.close();
+	} catch (std::ifstream::failure e) {
+		throw FileNotOpened(filepath);
 	}
-
-	file.close();
 
 	return fileContents;
 }
@@ -44,6 +46,6 @@ void framebufferResizeCallback(GLFWwindow* window, int newWidth, int newHeight) 
 }
 
 
-const char *FileNotOpened::what() const throw() {
-	return "File could not be opened, this can be due to lack of permission or the file does not exist.";
+FileNotOpened::FileNotOpened(const std::string& filepath):
+	std::runtime_error("Could not open file: " + filepath) {
 }

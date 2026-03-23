@@ -1,8 +1,8 @@
+#include "Utils.hpp"
 #include <MainScene.hpp>
 #include <map>
 
 MainScene::MainScene() {
-	std::cerr << "testing" << std::endl;
 	glfwInit();
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
@@ -25,7 +25,25 @@ MainScene::MainScene() {
 	glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
 
 	// Create and link shader program
-	shaderProgram = new ShaderProgram("./shaders/basic.vert", "./shaders/basic.frag");
+	shaderProgram = new Shader("./shaders/basic.vert", "./shaders/basic.frag");
+
+
+	// TODO: temp to move to another file later
+	images[0] = Image("./textures/wall.ppm");
+	glGenTextures(1, &images[0].id);
+	glBindTexture(GL_TEXTURE_2D, images[0].id);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, images[0].width, images[0].height, 0, GL_RGB, GL_UNSIGNED_BYTE, images[0].pixels.data());
+	glGenerateMipmap(GL_TEXTURE_2D);
+	images[0].clearImageData();
+
+	images[1] = Image("./textures/awsomeface.ppm");
+	glGenTextures(1, &images[1].id);
+	glBindTexture(GL_TEXTURE_2D, images[1].id);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 }
 
 MainScene::~MainScene() {
@@ -51,16 +69,44 @@ void MainScene::processInput() {
 	}
 }
 
+void MainScene::loadTriangleModel() {
+	vertices = {
+		// position				// color			// texture coords
+		 0.5f, -0.5f, 0.0f,		1.0f, 0.0f, 0.0f, 	0.0f, 0.0f,	/* bottom right */	
+		-0.5f, -0.5f, 0.0f, 	0.0f, 1.0f, 0.0f, 	1.0f, 0.0f, /* bottom left	*/
+		 0.0f,  0.5f, 0.0f,		0.0f, 0.0f, 1.0f,	0.5f, 1.0f	/* top middle	*/
+	};
+
+	indices = {
+		0, 1, 2
+	};
+}
+
+void MainScene::loadSquareModel() {
+	vertices = {
+		// position				// color
+		 0.5f,  0.5f, 0.0f,		1.0f, 0.0f, 0.0f,	1.0f, 1.0f,	/* top right	*/
+		 0.5f, -0.5f, 0.0f, 	0.0f, 1.0f, 0.0f,	1.0f, 0.0f,	/* bottom right */
+		-0.5f, -0.5f, 0.0f, 	0.0f, 0.0f, 1.0f,	0.0f, 0.0f,	/* bottom left	*/
+		-0.5f,  0.5f, 0.0f, 	0.0f, 0.0f, 0.0f, 	0.0f, 1.0f	/* top left 	*/
+	};
+
+	indices = {
+		0, 1, 3,
+		1, 2, 3
+	};
+}
+
 void MainScene::loadModel(const char* modelPath) {
-	std::string objPath(modelPath);
-
-	if (objPath.find_last_of(".obj", objPath.length() - 4) == std::string::npos) {
-		throw ModelFileNotCorrectFormatException();
-	}
-
-	std::vector<std::string> fileContent = readFileIntoVector(objPath);
-	std::map<std::string, int> temp;
-
+	// std::string objPath(modelPath);
+	//
+	// if (objPath.find_last_of(".obj", objPath.length() - 4) == std::string::npos) {
+	// 	throw ModelFileNotCorrectFormatException();
+	// }
+	//
+	// std::vector<std::string> fileContent = readFileIntoVector(objPath);
+	// std::map<std::string, int> temp;
+	//
 	// for (const auto i: fileContent) {
 	// 	std::string keyChar = i.substr(0, i.find(" "));
 	// 	if (temp.find(keyChar) != temp.end()) {
@@ -111,17 +157,8 @@ void MainScene::loadModel(const char* modelPath) {
 	// }
 	// std::cout << "loop finished" << std::endl;
 	
-	vertices = {
-		 0.5f,  0.5f, 0.0f,  // top right
-		 0.5f, -0.5f, 0.0f,  // bottom right
-		-0.5f, -0.5f, 0.0f,  // bottom left
-		-0.5f,  0.5f, 0.0f   // top left 
-	};
-
-	indices = {
-		0, 1, 3,
-		1, 2, 3,
-	};
+	// loadTriangleModel();
+	loadSquareModel();
 }
 
 void MainScene::run() {
@@ -143,8 +180,12 @@ void MainScene::run() {
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(float), indices.data(), GL_STATIC_DRAW);
 
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0); // setting attrib for position
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+	glEnableVertexAttribArray(1); // setting the attrib for color
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+	glEnableVertexAttribArray(2); // setting the attrib for color
 	
 	// Render loop
 	while (!glfwWindowShouldClose(window)) {
@@ -154,7 +195,10 @@ void MainScene::run() {
 		// Rendering commands here
 		glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
-		shaderProgram->useProgram();
+
+		shaderProgram->use();
+		shaderProgram->setFloat("horizonOffset", 0.5f);
+		glBindTexture(GL_TEXTURE_2D, image.id);
 		glBindVertexArray(VAO);
 		glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
 		glBindVertexArray(0);

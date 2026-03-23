@@ -7,19 +7,23 @@
 #include <string>
 #include <vector>
 
-#include <ShaderProgram.hpp>
+#include <Shader.hpp>
+#include <Image.hpp>
 #include <Utils.hpp>
 
 class MainScene {
 private:
 	GLFWwindow* 				window;
-	ShaderProgram* 				shaderProgram;
+	Shader* 					shaderProgram;
 	std::vector<float>			vertices;
 	std::vector<unsigned int>	indices;
 	bool						qPressed = false;
 	bool						isWireframe = false;
+	std::vector<Image>			images;	
 
 	void processInput();
+	void loadSquareModel();
+	void loadTriangleModel();
 
 public:
 

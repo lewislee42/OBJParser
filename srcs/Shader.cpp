@@ -1,39 +1,105 @@
 #include <Shader.hpp>
 
-Shader::Shader(std::string filePath, GLenum shaderType) {
-	std::string shaderSource = readFileIntoString(filePath);
+Shader::Shader(std::string vertexPath, std::string fragmentPath) {
+	std::string vertexCode;
+	std::string fragmentCode;
+	std::ifstream vertexFile; 
+	std::ifstream fragmentFile; 
 
-	const char* shaderSourceCChar = shaderSource.c_str();
-	// creates a vertex shader specifying the shader type and then saving the id
-	shaderId = glCreateShader(shaderType);
-	// attaches shader code to the shader object and compiles it
-	glShaderSource(shaderId, 1, &shaderSourceCChar, NULL);
-	glCompileShader(shaderId);
+	vertexFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+	fragmentFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
 
-	// maybe find out a way to do a loading page for compiling the shader
-	// how should we not compile the shader every time and only need to compile once like games?
+	try {
+		vertexFile.open(vertexPath);
+		fragmentFile.open(fragmentPath);
+		std::stringstream vertexShaderStream, fragmentShaderStream;
+
+		vertexShaderStream << vertexFile.rdbuf();
+		fragmentShaderStream << fragmentFile.rdbuf();
+
+		vertexFile.close();
+		fragmentFile.close();
+
+		vertexCode = vertexShaderStream.str();
+		fragmentCode = fragmentShaderStream.str();
+	} catch (std::ifstream::failure e) {
+		throw ShaderCouldNotReadFile(e.what());
+	}
+
+	const char* vertexShaderCode = vertexCode.c_str();
+	const char* fragmentShaderCode = fragmentCode.c_str();
+	
+	unsigned int vertexId, fragmentId;
 	int success;
 	char infoLog[512];
-	glGetShaderiv(shaderId, GL_COMPILE_STATUS, &success);
 
+	// Vertex Shader Compilation 
+	vertexId = glCreateShader(GL_VERTEX_SHADER);
+	glShaderSource(vertexId, 1, &vertexShaderCode, NULL);
+	glCompileShader(vertexId);
+
+	glGetShaderiv(vertexId, GL_COMPILE_STATUS, &success);
 	if (!success) {
-		glGetShaderInfoLog(shaderId, 512, NULL, infoLog);
+		glGetShaderInfoLog(vertexId, 512, NULL, infoLog);
 		throw ShaderCouldNotCompileException(infoLog);
 	}
+
+	// Fragment Shader Compilation 
+	fragmentId = glCreateShader(GL_FRAGMENT_SHADER);
+	glShaderSource(fragmentId, 1, &fragmentShaderCode, NULL);
+	glCompileShader(fragmentId);
+
+	glGetShaderiv(fragmentId, GL_COMPILE_STATUS, &success);
+	if (!success) {
+		glGetShaderInfoLog(fragmentId, 512, NULL, infoLog);
+		throw ShaderCouldNotCompileException(infoLog);
+	}
+
+	id = glCreateProgram();
+	glAttachShader(id, vertexId);
+	glAttachShader(id, fragmentId);
+	glLinkProgram(id);
+
+	glGetProgramiv(id, GL_LINK_STATUS, &success);
+	if (!success) {
+		glGetProgramInfoLog(id, 512, NULL, infoLog);
+		throw ShaderProgramLinkingError(infoLog);
+	}
+
+	glDeleteShader(vertexId);
+	glDeleteShader(fragmentId);
 }
 
-void Shader::deleteShader() {
-	glDeleteShader(shaderId);
+void Shader::use() {
+	glUseProgram(id);
 }
+
+void Shader::setBool(const std::string& name, bool value) const {
+	glUniform1i(glGetUniformLocation(id, name.c_str()), (int)value);
+}
+
+void Shader::setInt(const std::string& name, int value) const {
+	glUniform1i(glGetUniformLocation(id, name.c_str()), value);
+}
+
+void Shader::setFloat(const std::string& name, float value) const {
+	glUniform1f(glGetUniformLocation(id, name.c_str()), value);
+}
+
 
 /* ----------- EXCEPTIONS ------------ */
 
 /* ShaderNotFoundException */
-Shader::ShaderNotFoundException::ShaderNotFoundException(const std::string& filePath):
-	std::runtime_error("Shader \"" + filePath + "\" could not be found") {
+Shader::ShaderCouldNotReadFile::ShaderCouldNotReadFile(const char* errmsg):
+	std::runtime_error("Could not read shader file with exception: " + std::string(errmsg)) {
 }
 
 /* ShaderCouldNotCompileException */
 Shader::ShaderCouldNotCompileException::ShaderCouldNotCompileException(const char* infoLog): 
 	std::runtime_error("Shader compilation failed.\n" + std::string(infoLog)) {
+}
+
+/* ShaderProgramLinkingError */
+Shader::ShaderProgramLinkingError::ShaderProgramLinkingError(const char* infoLog):
+	std::runtime_error("Shader Program failed to link shaders\n" + std::string(infoLog)){
 }

@@ -4,27 +4,37 @@
 #include <string>
 #include <stdexcept>
 #include <iostream>
+#include <sstream>
 #include <Utils.hpp>
 
 
 class Shader {
 public:
-	unsigned int shaderId;
+	// Shader Program ID
+	unsigned int id;
 
-	Shader(std::string filePath, GLenum shaderType);
+	Shader(std::string vertexPath, std::string fragmentPath);
+
+	void use();
 	
-	void deleteShader();
-	
+	void setBool(const std::string& name, bool value) const;
+	void setInt(const std::string& name, int value) const;
+	void setFloat(const std::string& name, float value) const;
 	
 	/* Exceptions */
-	class ShaderNotFoundException: public std::runtime_error {
+	class ShaderCouldNotReadFile: public std::runtime_error {
 	public:
-		ShaderNotFoundException(const std::string& filePath);
+		ShaderCouldNotReadFile(const char* errmsg);
 	};
 
 	class ShaderCouldNotCompileException: public std::runtime_error {
 	public:
 		ShaderCouldNotCompileException(const char* infoLog);
+	};
+
+	class ShaderProgramLinkingError: public std::runtime_error {
+	public: 
+		ShaderProgramLinkingError(const char* infoLog);
 	};
 };
 

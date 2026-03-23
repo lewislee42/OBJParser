@@ -17,8 +17,8 @@ set(SOURCES
   ./srcs/main.cpp
   ./srcs/Utils.cpp
   ./srcs/Shader.cpp
-  ./srcs/ShaderProgram.cpp
   ./srcs/MainScene.cpp
+  ./srcs/Image.cpp
 )
 
 include(FetchContent)

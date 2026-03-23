@@ -3,7 +3,7 @@
 #include "glad/glad.h"
 #include "GLFW/glfw3.h"
 
-#include <exception>
+#include <stdexcept>
 #include <string>
 #include <vector>
 #include <iostream>
@@ -16,6 +16,7 @@ std::vector<std::string> readFileIntoVector(const std::string& filePath);
 void framebufferResizeCallback(GLFWwindow* window, int newWidth, int newHeight);
 
 /* Exceptions */
-class FileNotOpened : public std::exception {
-	const char *what() const throw();
+class FileNotOpened : public std::runtime_error {
+public:
+	FileNotOpened(const std::string& filepath);
 };
